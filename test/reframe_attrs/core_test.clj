@@ -1,5 +1,5 @@
-(ns reframe-attrs.macros-test
-  (:require [reframe-attrs.macros :as sut]
+(ns reframe-attrs.core
+  (:require [reframe-attrs.core :as sut]
             [clojure.test :refer :all :as t]))
 
 (def queries

@@ -1,6 +1,12 @@
+[![Clojars Project](https://img.shields.io/clojars/v/com.murphydye/reframe-attrs.svg)]
+
 # reframe-attrs
 
 Macro to generate reframe events and subscriptions for attributes
+
+## Installation
+
+`[com.murphydye/reframe-attrs "0.1.0"]`
 
 ## Usage
 

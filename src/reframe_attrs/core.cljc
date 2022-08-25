@@ -1,4 +1,4 @@
-(ns reframe-attrs.macros
+(ns reframe-attrs.core
   (:require
    [clojure.string :refer [join]]
   ;;   ;; [re-frame.core :as rf]
