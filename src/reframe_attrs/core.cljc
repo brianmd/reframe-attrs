@@ -92,7 +92,7 @@
                       (if (string? (:id ~m))
                         (keyword (:id ~m))
                         (:id ~m))
-                      (persist.core/next-id ~plural))
+                      (reframe-attrs.persist/next-id ~plural))
                ~'path (reframe-attrs.core/all-path-for ~root-name ~plural ~'id)
                ~m (if (:id ~m)
                     (merge (get-in ~d (reframe-attrs.core/all-path-for ~root-name ~plural ~'id)) ~m)
