@@ -2,7 +2,7 @@
 
 # reframe-attrs
 
-Macro to generate reframe events and subscriptions for attributes
+Macro to generate reframe events and subscriptions to get/set attributes in the reframe store
 
 ## Installation
 

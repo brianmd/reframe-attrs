@@ -1,12 +1,10 @@
-(ns reframe-attrs.core
-  (:require
-   [clojure.string :refer [join]]
-  ;;   ;; [re-frame.core :as rf]
-  ;;   ;; [day8.re-frame.tracing :refer-macros [fn-traced]]
-   )
-  )
+(ns reframe-attrs.core)
+
+;; Macros must be created on the clojure (clj/cljc) side, even when used only
+;; on the clojurescript side.
 
 (defmacro build-events-and-subscriptions
+  "create subscriptions/events to get/set attributes stored in a reframe store"
   [singular-name plural-name root-name recency? fields]
   (let [fields (map #(if (string? %) {:id %} %) fields)
         singular (keyword singular-name)
@@ -27,7 +25,23 @@
         ]
     `(let
        [~'all-path [~root-name ~plural :all]
-        ~'recency-path ~(if recency? `[~root-name ~plural :recency])]
+        ~'recency-path ~(if recency? `[~root-name ~plural :recency])
+        ;; Having these here would preclude needing the cljs file
+        ;; all-path-for (fn
+        ;;                ([persistance plural-name id]
+        ;;                 [persistance plural-name :all id])
+        ;;                ([persistance plural-name id fld]
+        ;;                 [persistance plural-name :all id fld]))
+        ;; update-recency (fn
+        ;;                  [id s]
+        ;;                  (if (and s (= id (first s)))
+        ;;                    s
+        ;;                    (conj
+        ;;                      (if (nil? s)
+        ;;                        '()
+        ;;                        (remove #(= % id) s))
+        ;;                      id)))
+        ]
 
        (re-frame.core/reg-event-db
         ~(plural-keyword "clear")
@@ -79,17 +93,16 @@
                         (keyword (:id ~m))
                         (:id ~m))
                       (persist.core/next-id ~plural))
-               ~'path (all-path-for ~root-name ~plural ~'id)
+               ~'path (reframe-attrs.core/all-path-for ~root-name ~plural ~'id)
                ~m (if (:id ~m)
-                   (merge (get-in ~d (all-path-for ~root-name ~plural ~'id)) ~m)
+                    (merge (get-in ~d (reframe-attrs.core/all-path-for ~root-name ~plural ~'id)) ~m)
                    (assoc ~m :id ~'id))
-
                ]
            (->
             ~d
-            (assoc-in (all-path-for ~root-name ~plural ~'id) ~m)
+            (assoc-in (reframe-attrs.core/all-path-for ~root-name ~plural ~'id) ~m)
             ~(if recency?
-               `(update-in ~'recency-path (partial update-recency ~'id))
+               `(update-in ~'recency-path (partial reframe-attrs.core/update-recency ~'id))
                `identity
                )
             ))
@@ -125,7 +138,7 @@
               ~(plural-keyword "bump-recency")
               (day8.re-frame.tracing/fn-traced
                 [~d [~ignore ~id]]
-                (update-in ~d ~'recency-path (partial update-recency ~id)))))
+                (update-in ~d ~'recency-path (partial reframe-attrs.core/update-recency ~id)))))
 
 
          ;; subscriptions to get all of each field
@@ -162,7 +175,7 @@
                       ~(singular-keyword fld)
                       (day8.re-frame.tracing/fn-traced
                        [~d [~ignore ~id ~'value]]
-                       (let [~'path (all-path-for ~root-name ~plural ~id (keyword ~fld))]
+                       (let [~'path (reframe-attrs.core/all-path-for ~root-name ~plural ~id (keyword ~fld))]
                          (assoc-in ~d ~'path ~'value)))))
                   field-names)))
          )))
