@@ -7,6 +7,40 @@ Macro to generate reframe events and subscriptions to get/set attributes in the 
 When you have a bunch of maps, defrecords, etc. that you need to model in re-frame, there are a lot of events and subscriptions that need to be created.
 This library is intended to reduce the level of effort by generating the attribute (field) level interactions.
 
+An important efficiency aspect of subscriptions is to chain them. Rather than get the name of user id #117 directly from the reframe store, it should get the name out of the subscription for id #117. This greatly reduces the number of subscriptions that get fired upon changes to the store.
+
+## Design Considerations
+
+There is only a single record for some records, such as there might be a single settings record (or map). But there are multiple records for most types. To maintain a consistent interface, all types may contain multiple records. For single record types, use an id of 1.
+
+Both a plural name and a singular name are required. The plural name is used for dealing w/ the entire set of records, or to get/set a record w/ a given id e.g.:
+
+* :users/clear removes all users from the database,
+* :users/all returns all user records (or sets all if event),
+* :users/keys returns the ids of all records,
+* :users/metadata returns the values passed to build-events-and-subscriptions
+* :users/store places map/record into reframe's store. It should have an :id.
+* :users/id <id value> returns the user with the given id,
+
+The singular name is used for attribute (field) access:
+
+* :user/id returns the id with the given id, ie, returns itself if the record exists in the store
+* :user/email <id> returns the email of the user w/ the given id (or sets it if event)
+
+
+
+### Root var
+
+
+
+### Recency
+
+
+### Other event/subscriptions
+
+This library does not (yet) attempt to generate events or subscriptions to, for example, move data between the server and client.
+
+
 ## Installation
 
 `[com.murphydye/reframe-attrs "0.1.0"]`
