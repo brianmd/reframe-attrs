@@ -10,6 +10,23 @@ Macro to generate reframe events and subscriptions to get/set attributes in the 
 
 ## Usage
 
+```clojure
+(:require
+   [reframe-attrs.core]
+   [reframe-attrs.persist :as persist])
+
+ (:require-macros [reframe-attrs.core :refer [build-events-and-subscriptions]])
+
+(build-events-and-subscriptions
+  "user"                       ;; singular name (class name in UML)
+  "users"                      ;; plural name
+  :non-persist                 ;; root var name
+  false                        ;; recency?
+  [{:id "name" :type :str}     ;; fields, could also be ["name" "email"]
+   {:id "email" :type :str}])
+```
+
+![UML diagram](http://www.plantuml.com/plantuml/svg/SoWkIImgAStDuKhEIImkLWWjJYrIgERAJE7AIynDvKhDJSpCuQhbWihw5wN0f5CIIrAvalEBIq2oO5swTWfA-I05nKeGXLmEgNafGAC1)
 
 ## License
 
