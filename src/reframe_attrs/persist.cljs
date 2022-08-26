@@ -1,8 +1,8 @@
 (ns reframe-attrs.persist
   (:require
+   [reframe-attrs.next-id :as nextt]
    [re-frame.core :as rf]
    [day8.re-frame.tracing :refer-macros [fn-traced]]
-   [reframe-attrs.next-id :refer :all]
    ))
 
 ;; TODO: create next-ids event/subscription <-> localStorage
@@ -24,7 +24,7 @@
 (rf/reg-sub
  :persist/next-id
  (fn [_db [_ name]]
-   (next-id name)))
+   (reframe-attrs.next-id/next-id name)))
 
 (rf/reg-event-db
  :persist/clear
