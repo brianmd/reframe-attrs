@@ -7,8 +7,6 @@
     '(sut/build-events-and-subscriptions
        "query" "queries" :non-persist true
        ["aaaa" "bbbb"]           ;; can pass either an array of strings
-       ;; [{:id "aaaa" :type :str}  ;; or an array of hashes
-       ;;  {:id "bbbb" :type :str}]
        )))
 
 (defn extract-events

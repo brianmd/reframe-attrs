@@ -4,11 +4,20 @@
 
 Macro to generate reframe events and subscriptions to get/set attributes in the reframe store
 
+When you have a bunch of maps, defrecords, etc. that you need to model in re-frame, there are a lot of events and subscriptions that need to be created.
+This library is intended to reduce the level of effort by generating the attribute (field) level interactions.
+
 ## Installation
 
 `[com.murphydye/reframe-attrs "0.1.0"]`
 
 ## Usage
+
+This UML diagram may be build with the code below.
+
+![UML diagram](http://www.plantuml.com/plantuml/svg/SoWkIImgAStDuKhEIImkLWWjJYrIgERAJE7AIynDvKhDJSpCuQhbWihw5wN0f5CIIrAvalEBIq2oO5swTWfA-I05nKeGXLmEgNafGAC1)
+
+(from http://www.plantuml.com/plantuml/uml/SyfFKj2rKt3CoKnELR1Io4ZDoSa70000)
 
 ```clojure
 (:require
@@ -22,11 +31,234 @@ Macro to generate reframe events and subscriptions to get/set attributes in the 
   "users"                      ;; plural name
   :non-persist                 ;; root var name
   false                        ;; recency?
-  [{:id "name" :type :str}     ;; fields, could also be ["name" "email"]
-   {:id "email" :type :str}])
+  [{:id "id" :type :int}       ;; fields, could also be ["id" "name" "email" "orders"]
+   {:id "name" :type :str}     ;; only :id is required
+   {:id "email" :type :str}
+   {:id "orders" :type :obj}])
+
+(build-events-and-subscriptions
+  "order"
+  "orders"
+  :non-persist
+  false
+  ["id" "date" "cost"])       ;; the other way attrs can be defined
 ```
 
-![UML diagram](http://www.plantuml.com/plantuml/svg/SoWkIImgAStDuKhEIImkLWWjJYrIgERAJE7AIynDvKhDJSpCuQhbWihw5wN0f5CIIrAvalEBIq2oO5swTWfA-I05nKeGXLmEgNafGAC1)
+The above generates this code for the user model:
+```clojure
+(let*
+ [all-path
+  [:non-persist :users :all]
+  recency-path
+  [:non-persist :users :recency]]
+ (re-frame.core/reg-event-db
+  :users/clear
+  (day8.re-frame.tracing/fn-traced
+   [db _]
+   (clojure.core/assoc-in db [:non-persist :users] {})))
+ (re-frame.core/reg-sub
+  :users/metadata
+  (clojure.core/fn
+   [db _]
+   {:singular "user",
+    :plural "users",
+    :root-name :non-persist,
+    :recency? true,
+    :fields
+    ({:id "id", :type :int}
+     {:id "name", :type :str}
+     {:id "email", :type :str}
+     {:id "orders", :type :obj})}))
+ (re-frame.core/reg-sub
+  :users/all
+  (clojure.core/fn
+   [db _]
+   (clojure.core/or (clojure.core/get-in db all-path) {})))
+ (re-frame.core/reg-event-db
+  :users/all
+  (day8.re-frame.tracing/fn-traced
+   [db [_ m]]
+   (clojure.core/assoc-in db all-path m)))
+ (re-frame.core/reg-sub
+  :users/recency
+  (clojure.core/fn
+   [db _]
+   (clojure.core/or (clojure.core/get-in db recency-path) [])))
+ (re-frame.core/reg-sub
+  :users/keys
+  :<-
+  [:users/all]
+  (clojure.core/fn [all] (clojure.core/keys all)))
+ (re-frame.core/reg-event-db
+  :users/store
+  (day8.re-frame.tracing/fn-traced
+   [db [_ m]]
+   (clojure.core/let
+    [id
+     (if
+      (:id m)
+      (if
+       (clojure.core/string? (:id m))
+       (clojure.core/keyword (:id m))
+       (:id m))
+      (persist.core/next-id :users))
+     path
+     (reframe-attrs.core/all-path-for :non-persist :users id)
+     m
+     (if
+      (:id m)
+      (clojure.core/merge
+       (clojure.core/get-in
+        db
+        (reframe-attrs.core/all-path-for :non-persist :users id))
+       m)
+      (clojure.core/assoc m :id id))]
+    (clojure.core/->
+     db
+     (clojure.core/assoc-in
+      (reframe-attrs.core/all-path-for :non-persist :users id)
+      m)
+     (clojure.core/update-in
+      recency-path
+      (clojure.core/partial reframe-attrs.core/update-recency id))))))
+ (re-frame.core/reg-sub
+  :users/id
+  :<-
+  [:users/all]
+  (clojure.core/fn [users [_ id]] (clojure.core/get users id)))
+ (re-frame.core/reg-sub
+  :users/users
+  :<-
+  [:users/all]
+  :<-
+  [:users/recency]
+  (clojure.core/fn
+   [[all recency]]
+   (clojure.core/mapv (clojure.core/fn [x] (all x)) recency)))
+ (re-frame.core/reg-event-db
+  :users/bump-recency
+  (day8.re-frame.tracing/fn-traced
+   [db [_ id]]
+   (clojure.core/update-in
+    db
+    recency-path
+    (clojure.core/partial reframe-attrs.core/update-recency id))))
+ (do
+  (re-frame.core/reg-sub
+   :users/id
+   (clojure.core/fn [_] (re-frame.core/subscribe [:users/users]))
+   (clojure.core/fn
+    [all-vector fld]
+    (clojure.core/mapv
+     (clojure.core/fn [x] ((clojure.core/keyword "id") x))
+     all-vector)))
+  (re-frame.core/reg-sub
+   :users/name
+   (clojure.core/fn [_] (re-frame.core/subscribe [:users/users]))
+   (clojure.core/fn
+    [all-vector fld]
+    (clojure.core/mapv
+     (clojure.core/fn [x] ((clojure.core/keyword "name") x))
+     all-vector)))
+  (re-frame.core/reg-sub
+   :users/email
+   (clojure.core/fn [_] (re-frame.core/subscribe [:users/users]))
+   (clojure.core/fn
+    [all-vector fld]
+    (clojure.core/mapv
+     (clojure.core/fn [x] ((clojure.core/keyword "email") x))
+     all-vector)))
+  (re-frame.core/reg-sub
+   :users/orders
+   (clojure.core/fn [_] (re-frame.core/subscribe [:users/users]))
+   (clojure.core/fn
+    [all-vector fld]
+    (clojure.core/mapv
+     (clojure.core/fn [x] ((clojure.core/keyword "orders") x))
+     all-vector))))
+ (do
+  (re-frame.core/reg-sub
+   :user/id
+   (clojure.core/fn
+    [[the-name id]]
+    (re-frame.core/subscribe [:users/id id]))
+   (clojure.core/fn
+    [obj [query-v id]]
+    ((clojure.core/keyword "id") obj)))
+  (re-frame.core/reg-sub
+   :user/name
+   (clojure.core/fn
+    [[the-name id]]
+    (re-frame.core/subscribe [:users/id id]))
+   (clojure.core/fn
+    [obj [query-v id]]
+    ((clojure.core/keyword "name") obj)))
+  (re-frame.core/reg-sub
+   :user/email
+   (clojure.core/fn
+    [[the-name id]]
+    (re-frame.core/subscribe [:users/id id]))
+   (clojure.core/fn
+    [obj [query-v id]]
+    ((clojure.core/keyword "email") obj)))
+  (re-frame.core/reg-sub
+   :user/orders
+   (clojure.core/fn
+    [[the-name id]]
+    (re-frame.core/subscribe [:users/id id]))
+   (clojure.core/fn
+    [obj [query-v id]]
+    ((clojure.core/keyword "orders") obj))))
+ (do
+  (re-frame.core/reg-event-db
+   :user/id
+   (day8.re-frame.tracing/fn-traced
+    [db [_ id value]]
+    (clojure.core/let
+     [path
+      (reframe-attrs.core/all-path-for
+       :non-persist
+       :users
+       id
+       (clojure.core/keyword "id"))]
+     (clojure.core/assoc-in db path value))))
+  (re-frame.core/reg-event-db
+   :user/name
+   (day8.re-frame.tracing/fn-traced
+    [db [_ id value]]
+    (clojure.core/let
+     [path
+      (reframe-attrs.core/all-path-for
+       :non-persist
+       :users
+       id
+       (clojure.core/keyword "name"))]
+     (clojure.core/assoc-in db path value))))
+  (re-frame.core/reg-event-db
+   :user/email
+   (day8.re-frame.tracing/fn-traced
+    [db [_ id value]]
+    (clojure.core/let
+     [path
+      (reframe-attrs.core/all-path-for
+       :non-persist
+       :users
+       id
+       (clojure.core/keyword "email"))]
+     (clojure.core/assoc-in db path value))))
+  (re-frame.core/reg-event-db
+   :user/orders
+   (day8.re-frame.tracing/fn-traced
+    [db [_ id value]]
+    (clojure.core/let
+     [path
+      (reframe-attrs.core/all-path-for
+       :non-persist
+       :users
+       id
+       (clojure.core/keyword "orders"))]
+     (clojure.core/assoc-in db path value))))))
+```
 
 ## License
 
