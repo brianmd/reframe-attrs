@@ -13,6 +13,8 @@ An important efficiency aspect of subscriptions is to chain them. Rather than ge
 
 There is only a single record for some records, such as there might be a single settings record (or map). But there are multiple records for most types. To maintain a consistent interface, all types may contain multiple records. For single record types, use an id of 1.
 
+### Singular vs Plural Names
+
 Both a plural name and a singular name are required. The plural name is used for dealing w/ the entire set of records, or to get/set a record w/ a given id e.g.:
 
 * :users/clear removes all users from the database,
@@ -20,7 +22,10 @@ Both a plural name and a singular name are required. The plural name is used for
 * :users/keys returns the ids of all records,
 * :users/metadata returns the values passed to build-events-and-subscriptions
 * :users/store places map/record into reframe's store. It should have an :id.
-* :users/id <id value> returns the user with the given id,
+* :users/id returns the record with the specified id,
+* :users/ids returns a vector of all ids,
+* :users/emails returns a vector of all emails,
+* :users/orderss returns a vector of all orders (odd name because just adding an 's' to the end of the attribute name),
 
 The singular name is used for attribute (field) access:
 
@@ -29,14 +34,14 @@ The singular name is used for attribute (field) access:
 
 
 
-### Root var
+### Root Var
 
 
 
 ### Recency
 
 
-### Other event/subscriptions
+### Other Event/Subscriptions
 
 This library does not (yet) attempt to generate events or subscriptions to, for example, move data between the server and client.
 
@@ -65,7 +70,7 @@ This UML diagram may be build with the code below.
   "users"                      ;; plural name
   :non-persist                 ;; root var name
   false                        ;; recency?
-  [{:id "id" :type :int}       ;; fields, could also be ["id" "name" "email" "orders"]
+  [{:id "id" :type :int}       ;; attributes, could also be ["id" "name" "email" "orders"]
    {:id "name" :type :str}     ;; only :id is required
    {:id "email" :type :str}
    {:id "orders" :type :obj}])
@@ -98,7 +103,7 @@ The above generates this code for the user model:
     :plural "users",
     :root-name :non-persist,
     :recency? true,
-    :fields
+    :attributes
     ({:id "id", :type :int}
      {:id "name", :type :str}
      {:id "email", :type :str}
@@ -135,7 +140,7 @@ The above generates this code for the user model:
        (clojure.core/string? (:id m))
        (clojure.core/keyword (:id m))
        (:id m))
-      (persist.core/next-id :users))
+      (reframe-attrs.next-id/next-id :users))
      path
      (reframe-attrs.core/all-path-for :non-persist :users id)
      m
@@ -179,7 +184,7 @@ The above generates this code for the user model:
     (clojure.core/partial reframe-attrs.core/update-recency id))))
  (do
   (re-frame.core/reg-sub
-   :users/id
+   :users/ids
    (clojure.core/fn [_] (re-frame.core/subscribe [:users/users]))
    (clojure.core/fn
     [all-vector fld]
@@ -187,7 +192,7 @@ The above generates this code for the user model:
      (clojure.core/fn [x] ((clojure.core/keyword "id") x))
      all-vector)))
   (re-frame.core/reg-sub
-   :users/name
+   :users/names
    (clojure.core/fn [_] (re-frame.core/subscribe [:users/users]))
    (clojure.core/fn
     [all-vector fld]
@@ -195,7 +200,7 @@ The above generates this code for the user model:
      (clojure.core/fn [x] ((clojure.core/keyword "name") x))
      all-vector)))
   (re-frame.core/reg-sub
-   :users/email
+   :users/emails
    (clojure.core/fn [_] (re-frame.core/subscribe [:users/users]))
    (clojure.core/fn
     [all-vector fld]
@@ -203,7 +208,7 @@ The above generates this code for the user model:
      (clojure.core/fn [x] ((clojure.core/keyword "email") x))
      all-vector)))
   (re-frame.core/reg-sub
-   :users/orders
+   :users/orderss
    (clojure.core/fn [_] (re-frame.core/subscribe [:users/users]))
    (clojure.core/fn
     [all-vector fld]

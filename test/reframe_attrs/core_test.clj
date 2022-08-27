@@ -9,6 +9,18 @@
        ["aaaa" "bbbb"]           ;; can pass either an array of strings
        )))
 
+;; (spit "users.txt"
+;;   (with-out-str
+;;     (clojure.pprint/pprint
+;;       (macroexpand
+;;         '(sut/build-events-and-subscriptions
+;;            "user" "users" :non-persist true
+;;            [{:id "id" :type :int}
+;;             {:id "name" :type :str}
+;;             {:id "email" :type :str}
+;;             {:id "orders" :type :obj}]
+;;            )))))
+
 (defn extract-events
   [body]
   (reduce (fn [accum x]

@@ -5,15 +5,15 @@
 
 (defmacro build-events-and-subscriptions
   "create subscriptions/events to get/set attributes stored in a reframe store"
-  [singular-name plural-name root-name recency? fields]
-  (let [fields (map #(if (string? %) {:id %} %) fields)
+  [singular-name plural-name root-name recency? attributes]
+  (let [attributes (map #(if (string? %) {:id %} %) attributes)
         singular (keyword singular-name)
         plural (keyword plural-name)
         singular-keyword (fn [& [fld]]  (keyword singular-name fld))
         plural-keyword   (fn [& [fld]] (keyword plural-name fld))
         plural-param (symbol plural-name)
         d 'db
-        field-names (map :id fields)
+        attribute-names (map :id attributes)
         id 'id
         ignore '_
         m 'm
@@ -21,7 +21,7 @@
                   :plural plural-name
                   :root-name root-name
                   :recency? recency?
-                  :fields fields}
+                  :attributes attributes}
         ]
     `(let
        [~'all-path [~root-name ~plural :all]
@@ -141,17 +141,17 @@
                 (update-in ~d ~'recency-path (partial reframe-attrs.core/update-recency ~id)))))
 
 
-         ;; subscriptions to get all of each field
+         ;; subscriptions to get all of each attribute
          (do
            ~@(doall
              (map (fn [fld]
                     `(re-frame.core/reg-sub
-                      ~(plural-keyword fld)
+                       ~(plural-keyword (str fld "s"))
                       (fn [~ignore]
                         (re-frame.core/subscribe [~(plural-keyword plural-name)]))
                       (fn [~'all-vector ~'fld]
                         (mapv (fn [~'x] ((keyword ~fld) ~'x)) ~'all-vector))))
-                  field-names))
+                  attribute-names))
             )
 
          (do
@@ -164,9 +164,9 @@
                        (fn [~'obj [~'query-v ~id]]
                          ((keyword ~fld) ~'obj))))
                        ;; ))
-                   field-names)))
+                   attribute-names)))
 
-         ;; getter events for each field of a record,
+         ;; getter events for each attribute of a record,
          ;; eg, [:chart/query-id 1] gets query-id for chart id 1
          (do
            ~@(doall
@@ -177,5 +177,5 @@
                        [~d [~ignore ~id ~'value]]
                        (let [~'path (reframe-attrs.core/all-path-for ~root-name ~plural ~id (keyword ~fld))]
                          (assoc-in ~d ~'path ~'value)))))
-                  field-names)))
+                  attribute-names)))
          )))
